@@ -16,13 +16,20 @@ class HashTable:
 
     Implement this.
     """
+    # EITHER DJB2 OR FNV-1
 
-    def fnv1(self, key):
-        """
-        FNV-1 64-bit hash function
+    # def fnv1(self, key):
+    #     """
+    #     FNV-1 64-bit hash function
+    #
+    #     Implement this, and/or DJB2.
+    #     """
+    #     # BELOW IS NEEDED TO MAKE THE FNV-1 HASH CORRECT
+    #     total &= 0xffffffffffffffff # 64-bit; LAST LINE OF LOOP
 
-        Implement this, and/or DJB2.
-        """
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.storage = [None] * capacity
 
     def djb2(self, key):
         """
@@ -30,6 +37,13 @@ class HashTable:
 
         Implement this, and/or FNV-1.
         """
+        hash = 5381
+        for x in key:
+            hash = ((hash << 5) + hash) + ord(x)
+        return hash & 0xffffffff
+
+        # BELOW IS NEEDED TO MAKE THE DJB2 HASH CORRECT
+        # total &= 0xffffffff # 32-bit; LAST LINE OF LOOP
 
     def hash_index(self, key):
         """
@@ -37,7 +51,8 @@ class HashTable:
         between within the storage capacity of the hash table.
         """
         #return self.fnv1(key) % self.capacity
-        return self.djb2(key) % self.capacity
+        hash = self.djb2(key)
+        return hash % self.capacity
 
     def put(self, key, value):
         """
@@ -47,6 +62,23 @@ class HashTable:
 
         Implement this.
         """
+        index = self.hash_index(key)
+        current = self.storage[index]
+        if current is None:
+            self.storage[index] = HashTableEntry(key, value)
+            return
+
+        if current.key == key:
+            current.value = value
+            return
+
+        while current.next is not None:
+            if current.next.key == key:
+                current.next.value = value
+                return
+            current = current.next
+
+        current.next = HashTableEntry(key, value)
 
     def delete(self, key):
         """
@@ -56,6 +88,18 @@ class HashTable:
 
         Implement this.
         """
+        current = self.storage[self.hash_index(key)]
+
+        while current.key != key:
+            if current.next is None:
+                return False
+            current = current.next
+
+        current_value = None
+        if current.key == key:
+            current_value = current.value
+            current.value = None
+        return current_value
 
     def get(self, key):
         """
@@ -65,14 +109,42 @@ class HashTable:
 
         Implement this.
         """
+        index = self.hash_index(key)
+        current = self.storage[index]
 
-    def resize(self):
+        if current is None:
+            return False
+        while current.key != key:
+            if current.next is None:
+                return False
+            current = current.next
+        return current.value
+
+    def resize(self, capacity=None):
         """
         Doubles the capacity of the hash table and
         rehash all key/value pairs.
 
         Implement this.
         """
+        if capacity is not None:
+            self.capacity = capacity
+        else:
+            self.capacity = self.capacity * 2
+        temp_storage = self.storage
+
+        self.storage = [None] * self.capacity
+
+        for i in temp_storage:
+            r = i
+
+            while r is not None:
+                prev = r
+                r = prev.next
+                prev.next = None
+
+                self.put(prev.key, prev.value)
+
 
 if __name__ == "__main__":
     ht = HashTable(2)
